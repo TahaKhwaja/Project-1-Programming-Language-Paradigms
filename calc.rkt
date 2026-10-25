@@ -12,9 +12,25 @@
 (define (digit? c) (and (char>=? c #\0) (char<=? c #\9)))
 (define (skip-ws chars) (dropf chars char-whitespace?))
 
+(define (negate a) (- a))
+
 (define (parse-number chars)
   (let-values ([(digits rest) (splitf-at chars digit?)])
     (list (string->number (list->string digits)) rest)))
+
+(define (parse-unary op chars)
+  (let ([operand (parse-expr chars)])
+    (list (op (first operand)) (second operand))))
+
+(define (parse-expr chars)
+  (let ([cs (skip-ws chars)])
+    (if (null? cs)
+        (fail "Invalid expression")
+        (let ([c (car cs)] [rest (cdr cs)])
+          (cond
+            [(char=? c #\-) (parse-unary negate rest)]
+            [(digit? c)     (parse-number cs)]
+            [else           (fail "Invalid expression")])))))
 
 (define (eval-loop history)
   (when prompt?
