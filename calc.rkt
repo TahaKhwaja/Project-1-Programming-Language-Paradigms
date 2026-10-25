@@ -79,7 +79,8 @@
             (let ([new-history (cons (cdr outcome) history)])
               (display (length new-history))
               (display ": ")
-              (displayln (cdr outcome))
+              (display (real->double-flonum (cdr outcome)))
+              (newline)
               (eval-loop new-history))]
            [else
             (display "Error: ")
