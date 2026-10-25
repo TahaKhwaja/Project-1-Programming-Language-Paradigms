@@ -23,30 +23,40 @@
   (let-values ([(digits rest) (splitf-at chars digit?)])
     (list (string->number (list->string digits)) rest)))
 
-(define (parse-unary op chars)
-  (let ([operand (parse-expr chars)])
+(define (parse-history chars history)
+  (let-values ([(digits rest) (splitf-at chars digit?)])
+    (if (null? digits)
+        (fail "Invalid expression")
+        (let ([n (string->number (list->string digits))])
+          (if (and (>= n 1) (<= n (length history)))
+              (list (list-ref history (- n 1)) rest)
+              (fail "Invalid expression"))))))
+
+(define (parse-unary op chars history)
+  (let ([operand (parse-expr chars history)])
     (list (op (first operand)) (second operand))))
 
-(define (parse-binary op chars)
-  (let* ([left  (parse-expr chars)]
-         [right (parse-expr (second left))])
+(define (parse-binary op chars history)
+  (let* ([left  (parse-expr chars history)]
+         [right (parse-expr (second left) history)])
     (list (op (first left) (first right)) (second right))))
 
-(define (parse-expr chars)
+(define (parse-expr chars history)
   (let ([cs (skip-ws chars)])
     (if (null? cs)
         (fail "Invalid expression")
         (let ([c (car cs)] [rest (cdr cs)])
           (cond
-            [(char=? c #\+) (parse-binary + rest)]
-            [(char=? c #\*) (parse-binary * rest)]
-            [(char=? c #\/) (parse-binary divide rest)]
-            [(char=? c #\-) (parse-unary negate rest)]
+            [(char=? c #\+) (parse-binary + rest history)]
+            [(char=? c #\*) (parse-binary * rest history)]
+            [(char=? c #\/) (parse-binary divide rest history)]
+            [(char=? c #\-) (parse-unary negate rest history)]
+            [(char=? c #\$) (parse-history rest history)]
             [(digit? c)     (parse-number cs)]
             [else           (fail "Invalid expression")])))))
 
-(define (evaluate line)
-  (let ([result (parse-expr (string->list line))])
+(define (evaluate line history)
+  (let ([result (parse-expr (string->list line) history)])
     (if (null? (skip-ws (second result)))
         (first result)
         (fail "Unexpected trailing characters"))))
@@ -63,11 +73,14 @@
        (let ([outcome
               (with-handlers ([string?   (lambda (msg) (cons 'error msg))]
                               [exn:fail? (lambda (e)   (cons 'error "Invalid expression"))])
-                (cons 'ok (evaluate line)))])
+                (cons 'ok (evaluate line (reverse history))))])
          (cond
            [(eq? (car outcome) 'ok)
-            (displayln (cdr outcome))
-            (eval-loop history)]
+            (let ([new-history (cons (cdr outcome) history)])
+              (display (length new-history))
+              (display ": ")
+              (displayln (cdr outcome))
+              (eval-loop new-history))]
            [else
             (display "Error: ")
             (displayln (cdr outcome))
