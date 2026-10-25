@@ -14,6 +14,11 @@
 
 (define (negate a) (- a))
 
+(define (divide a b)
+  (if (zero? b)
+      (fail "Invalid expression")
+      (quotient a b)))
+
 (define (parse-number chars)
   (let-values ([(digits rest) (splitf-at chars digit?)])
     (list (string->number (list->string digits)) rest)))
@@ -22,12 +27,20 @@
   (let ([operand (parse-expr chars)])
     (list (op (first operand)) (second operand))))
 
+(define (parse-binary op chars)
+  (let* ([left  (parse-expr chars)]
+         [right (parse-expr (second left))])
+    (list (op (first left) (first right)) (second right))))
+
 (define (parse-expr chars)
   (let ([cs (skip-ws chars)])
     (if (null? cs)
         (fail "Invalid expression")
         (let ([c (car cs)] [rest (cdr cs)])
           (cond
+            [(char=? c #\+) (parse-binary + rest)]
+            [(char=? c #\*) (parse-binary * rest)]
+            [(char=? c #\/) (parse-binary divide rest)]
             [(char=? c #\-) (parse-unary negate rest)]
             [(digit? c)     (parse-number cs)]
             [else           (fail "Invalid expression")])))))
