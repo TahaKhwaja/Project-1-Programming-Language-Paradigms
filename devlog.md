@@ -12,4 +12,8 @@ Add each result to the history with cons, and reverse the list before looking up
 Print results as floats.
 Test each function, then the sample runs.
 
+STAGE ONE:
+Added mode detection and loop skelaton
+
+STAGE TWO:
 
