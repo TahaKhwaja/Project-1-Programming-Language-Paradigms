@@ -45,6 +45,12 @@
             [(digit? c)     (parse-number cs)]
             [else           (fail "Invalid expression")])))))
 
+(define (evaluate line)
+  (let ([result (parse-expr (string->list line))])
+    (if (null? (skip-ws (second result)))
+        (first result)
+        (fail "Unexpected trailing characters"))))
+
 (define (eval-loop history)
   (when prompt?
     (display "> ")
@@ -53,8 +59,19 @@
     (cond
       [(eof-object? line) (void)]
       [(string=? line "quit") (void)]
-      [else (displayln line)
-            (eval-loop history)])))
+      [else
+       (let ([outcome
+              (with-handlers ([string?   (lambda (msg) (cons 'error msg))]
+                              [exn:fail? (lambda (e)   (cons 'error "Invalid expression"))])
+                (cons 'ok (evaluate line)))])
+         (cond
+           [(eq? (car outcome) 'ok)
+            (displayln (cdr outcome))
+            (eval-loop history)]
+           [else
+            (display "Error: ")
+            (displayln (cdr outcome))
+            (eval-loop history)]))])))
 
 (module+ main
   (eval-loop '()))
